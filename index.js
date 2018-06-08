@@ -42,6 +42,8 @@
         this.msPerFrame = 1000 / FPS;
         this.currentSpeed = this.config.SPEED;
 
+        this.delayKey = 0; //Este es el delay despues de pulsar una tecla
+
         this.obstacles = [];
 
         this.activated = false; // Whether the easter egg has been activated.
@@ -84,7 +86,7 @@
      * Frames per second.
      * @const
      */
-    var FPS = 60;
+    var FPS = 60
 
     /** @const */
     var IS_HIDPI = window.devicePixelRatio > 1;
@@ -154,7 +156,7 @@
 
 
     /**
-     * Sprite definition layout of the spritesheet.
+     * Sprite definition layout of the spritesheet. //Obtención de cada una de las imagenes de la imagen global
      * @enum {Object}
      */
     Runner.spriteDefinition = {
@@ -358,7 +360,7 @@
             this.containerEl = document.createElement('div');
             this.containerEl.className = Runner.classes.CONTAINER;
 
-            // Player canvas container.
+            // Player canvas container. ----------------------------------------//Crea elemento CANVAS
             this.canvas = createCanvas(this.containerEl, this.dimensions.WIDTH,
                 this.dimensions.HEIGHT, Runner.classes.PLAYER);
 
@@ -367,15 +369,15 @@
             this.canvasCtx.fill();
             Runner.updateCanvasScaling(this.canvas);
 
-            // Horizon contains clouds, obstacles and the ground.
+            // Horizon contains clouds, obstacles and the ground.--------------------//Crea elemento HORIZONTE
             this.horizon = new Horizon(this.canvas, this.spriteDef, this.dimensions,
                 this.config.GAP_COEFFICIENT);
 
-            // Distance meter
+            // Distance meter -------------------------------------------- //Crea elemento MEDIDOR DE DISTANCIA
             this.distanceMeter = new DistanceMeter(this.canvas,
                 this.spriteDef.TEXT_SPRITE, this.dimensions.WIDTH);
 
-            // Draw t-rex
+            // Draw t-rex ------------------------------------------------ //Crea elemento T-REX
             this.tRex = new Trex(this.canvas, this.spriteDef.TREX);
 
             this.outerContainerEl.appendChild(this.containerEl);
@@ -384,8 +386,8 @@
                 this.createTouchController();
             }
 
-            this.startListening();
-            this.update();
+            this.startListening();  //-------------------------Inicia los escuchadores de enventos (teclas, raton...)
+            this.update();          //--------------------------actualiza los frames del juego
 
             window.addEventListener(Runner.events.RESIZE,
                 this.debounceResize.bind(this));
@@ -517,16 +519,15 @@
          */
         update: function () {
             this.updatePending = false;
-
             var now = getTimeStamp();
-            var deltaTime = now - (this.time || now);
+            var deltaTime = now - (this.time || now); //Calcula deltaTime - La primera vez es cero
             this.time = now;
-
-            if (this.playing) {
-                this.clearCanvas();
-
-                if (this.tRex.jumping) {
-                    this.tRex.updateJump(deltaTime);
+            
+            if (this.playing) {                                     //-----------------------------------si se está jugando...
+                this.clearCanvas();                                 //-------------------------------------se limpia el canvas
+                
+                if (this.tRex.jumping) {                            //-------------------------------------si está saltando
+                    this.tRex.updateJump(deltaTime);                //----------------------------------------actualizo el salto (a menor deltaTime salto más largo)
                 }
 
                 this.runningTime += deltaTime;
@@ -554,9 +555,14 @@
                     this.distanceRan += this.currentSpeed * deltaTime / this.msPerFrame;
 
                     if (this.currentSpeed < this.config.MAX_SPEED) {
-                        this.currentSpeed += this.config.ACCELERATION;
+                        //this.currentSpeed += this.config.ACCELERATION; // ---------aumentar la velocidad
+                        //console.log("current Speed " + this.currentSpeed);
+                        this.delayKey += 0.05;  //@DAVID -- aumentar el retardo de tecla
+                        //console.log("El delay es " + this.delayKey);
                     }
                 } else {
+                    console.log("El delay es " + this.delayKey);
+                    this.delayKey = 0;
                     this.gameOver();
                 }
 
@@ -595,6 +601,8 @@
                 this.tRex.update(deltaTime);
                 this.scheduleNextUpdate();
             }
+
+        //console.log(deltaTime);
         },
 
         /**
@@ -604,14 +612,21 @@
             return (function (evtType, events) {
                 switch (evtType) {
                     case events.KEYDOWN:
-                    case events.TOUCHSTART:
-                    case events.MOUSEDOWN:
-                        this.onKeyDown(e);
+                    //case events.TOUCHSTART:
+                    //case events.MOUSEDOWN:
+                        //this.onKeyDownSleep(getTimeStamp(), e);
+                        if (!this.tRex.jumping && !this.tRex.ducking) {
+                            this.onKeyDown(e);  //<------------------------------------------------------------------------------    
+                        }
                         break;
                     case events.KEYUP:
-                    case events.TOUCHEND:
-                    case events.MOUSEUP:
-                        this.onKeyUp(e);
+                    //case events.TOUCHEND:
+                    //case events.MOUSEUP:
+                        //pause(100);
+                        //this.onKeyUpSleep(getTimeStamp(), e);
+                        if (this.tRex.jumping || this.tRex.ducking) {
+                            this.onKeyUp(e);
+                        }
                         break;
                 }
             }.bind(this))(e.type, Runner.events);
@@ -622,7 +637,7 @@
          */
         startListening: function () {
             // Keys.
-            document.addEventListener(Runner.events.KEYDOWN, this);
+            document.addEventListener(Runner.events.KEYDOWN, this); 
             document.addEventListener(Runner.events.KEYUP, this);
 
             if (IS_MOBILE) {
@@ -655,6 +670,41 @@
         },
 
         /**
+         * Process sleep when keydown.
+         * @param {keyTime} 
+         * @param {Event} e
+         */
+        /*onKeyDownSleep: function (keyTime, e) {
+            var nowDown = getTimeStamp();
+            
+            var deltaSleepDown = nowDown - keyTime;
+            console.log("delta Down 1era " + deltaSleepDown);
+            while (deltaSleepDown < 50) {
+                this.update();
+                nowDown = getTimeStamp();
+                deltaSleepDown = nowDown - keyTime;
+                console.log("Down time es " + nowDown + " y delta Down es " + deltaSleepDown);
+            }
+            this.onKeyDown(e);
+        },*/
+
+        /**
+         * Process sleep when keyup.
+         * @param {keyTime} 
+         * @param {Event} e
+         */
+        /*onKeyUpSleep: function (keyTime, e) {
+            var nowUp = getTimeStamp();
+            var deltaSleepUp = nowUp - keyTime;
+            while (deltaSleepUp < 500) {
+                this.update();
+                nowUp = getTimeStamp();
+                deltaSleepUp = nowUp - keyTime;
+            }
+            this.onKeyUp(e);
+        },*/
+
+        /**
          * Process keydown.
          * @param {Event} e
          */
@@ -678,7 +728,8 @@
                     //  Play sound effect and jump on starting the game for the first time.
                     if (!this.tRex.jumping && !this.tRex.ducking) {
                         this.playSound(this.soundFx.BUTTON_PRESS);
-                        this.tRex.startJump(this.currentSpeed);
+                        setTimeout(function(Rex,currentSpeed){Rex.startJump(currentSpeed); }, this.delayKey, this.tRex, this.currentSpeed);
+                        //this.tRex.startJump(this.currentSpeed);
                     }
                 }
 
@@ -695,7 +746,8 @@
                     this.tRex.setSpeedDrop();
                 } else if (!this.tRex.jumping && !this.tRex.ducking) {
                     // Duck.
-                    this.tRex.setDuck(true);
+                    setTimeout(function(Rex){Rex.setDuck(true); }, this.delayKey, this.tRex);
+                    //this.tRex.setDuck(true);
                 }
             }
         },
@@ -712,10 +764,12 @@
                 e.type == Runner.events.MOUSEDOWN;
 
             if (this.isRunning() && isjumpKey) {
-                this.tRex.endJump();
+                setTimeout(function(Rex){Rex.endJump(); }, this.delayKey, this.tRex);
+                //this.tRex.endJump();
             } else if (Runner.keycodes.DUCK[keyCode]) {
                 this.tRex.speedDrop = false;
-                this.tRex.setDuck(false);
+                setTimeout(function(Rex){Rex.setDuck(false); }, this.delayKey, this.tRex);
+                //this.tRex.setDuck(false);
             } else if (this.crashed) {
                 // Check that enough time has elapsed before allowing jump key to restart.
                 var deltaTime = getTimeStamp() - this.time;
@@ -749,6 +803,7 @@
         scheduleNextUpdate: function () {
             if (!this.updatePending) {
                 this.updatePending = true;
+                //pause(50); --------------------------Actualizar cada frame con un delay
                 this.raqId = requestAnimationFrame(this.update.bind(this));
             }
         },
@@ -984,6 +1039,15 @@
      */
     function getTimeStamp() {
         return IS_IOS ? new Date().getTime() : performance.now();
+    }
+
+    /** @David function
+     * Sleep during miliseconds value.
+     * @return nothing
+     */
+    function pause(milliseconds) {
+        var dt = new Date();
+        while ((new Date()) - dt <= milliseconds) { /* Do nothing */}
     }
 
 
@@ -1358,7 +1422,7 @@
                     if (this.typeConfig.speedOffset) {
                         speed += this.speedOffset;
                     }
-                    this.xPos -= Math.floor((speed * FPS / 1000) * deltaTime);
+                    this.xPos -= Math.floor((speed * FPS / 1000) * deltaTime);  //@INFO: aqui realiza el desplazamiento de los obstaculos 
 
                     // Update frame
                     if (this.typeConfig.numFrames) {
@@ -1508,6 +1572,8 @@
         this.speedDrop = false;
         this.jumpCount = 0;
         this.jumpspotX = 0;
+
+        //this.timeSleepKey = 0; //@DAVID ----------------------- creo esta variable para conocer el tiempo en el que se activa el salto
 
         this.init();
     };
@@ -1659,6 +1725,7 @@
 
             // Update the frame position.
             if (this.timer >= this.msPerFrame) {
+                //pause(30); //@DAVID <------------------------------------------------------------------------------------*******
                 this.currentFrame = this.currentFrame ==
                     this.currentAnimFrames.length - 1 ? 0 : this.currentFrame + 1;
                 this.timer = 0;
@@ -1749,6 +1816,7 @@
                 // Tweak the jump velocity based on the speed.
                 this.jumpVelocity = this.config.INIITAL_JUMP_VELOCITY - (speed / 10);
                 this.jumping = true;
+                this.timeSleepKey = getTimeStamp();
                 this.reachedMinHeight = false;
                 this.speedDrop = false;
             }
@@ -1798,7 +1866,7 @@
                 this.reset();
                 this.jumpCount++;
             }
-
+               
             this.update(deltaTime);
         },
 
@@ -2176,7 +2244,7 @@
          */
         update: function (speed) {
             if (!this.remove) {
-                this.xPos -= Math.ceil(speed);
+                this.xPos -= Math.ceil(speed); //@INFO: aqui realiza el desplazamiento de las nubes
                 this.draw();
 
                 // Mark as removeable if no longer in the canvas.
@@ -2251,7 +2319,7 @@
             if (activated && (this.opacity < 1 || this.opacity == 0)) {
                 this.opacity += NightMode.config.FADE_SPEED;
             } else if (this.opacity > 0) {
-                this.opacity -= NightMode.config.FADE_SPEED;
+                this.opacity -= NightMode.config.FADE_SPEED; //@INFO: aqui realiza el desplazamiento de modo noche
             }
 
             // Set moon positioning.
